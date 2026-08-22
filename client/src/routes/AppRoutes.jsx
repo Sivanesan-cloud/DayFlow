@@ -31,7 +31,7 @@ function PublicRoute({ children }) {
   return children;
 }
 
-function ProtectedRoute({ children, allowedRole }) {
+function ProtectedRoute({ children, allowedRole, allowedRoles }) {
   const { loading, currentUser, role, getHomeRoute } = useAuth();
 
   if (loading) {
@@ -42,7 +42,8 @@ function ProtectedRoute({ children, allowedRole }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRole && role !== allowedRole) {
+  const permittedRoles = allowedRoles || (allowedRole ? [allowedRole] : null);
+  if (permittedRoles && !permittedRoles.includes(role)) {
     return <Navigate to={getHomeRoute(role)} replace />;
   }
 
@@ -57,7 +58,7 @@ export default function AppRoutes() {
         <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
         <Route path="/employee" element={<ProtectedRoute allowedRole="employee"><EmployeeDashboard /></ProtectedRoute>} />
         <Route path="/employee/leave" element={<ProtectedRoute allowedRole="employee"><LeaveRequests /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute allowedRole="admin"><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin', 'hr']}><AdminDashboard /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
