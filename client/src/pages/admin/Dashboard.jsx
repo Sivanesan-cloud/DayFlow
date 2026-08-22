@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import LeaveApprovals from './LeaveApprovals';
+import Attendance from './Attendance';
 
 // ─── Icons (inline SVG so no extra deps) ────────────────────────────────────
 const Icons = {
@@ -228,7 +230,12 @@ export default function Dashboard() {
 
       {/* ── Main Content ── */}
       <main style={{ marginLeft: 200, flex: 1, padding: '32px 28px', minHeight: '100vh' }}>
-
+        {activeNav === 'attendance' ? (
+          <Attendance />
+        ) : activeNav === 'leave' ? (
+          <LeaveApprovals />
+        ) : (
+          <>
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
@@ -424,6 +431,8 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+          </>
+        )}
       </main>
     </div>
   );
