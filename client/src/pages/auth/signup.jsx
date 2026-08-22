@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext.jsx';
 import './auth.css';
 
 function Brand() {
   return (
     <div className="brand">
-      <span className="brand-mark">✣</span>
+      <span className="brand-mark">DF</span>
       <span>Dayflow</span>
     </div>
   );
@@ -22,7 +23,7 @@ function PasswordInput({ id, label, value, onChange, autoComplete }) {
           id={id}
           name={id}
           type={visible ? 'text' : 'password'}
-          placeholder="••••••••"
+          placeholder="Enter your password"
           required
           value={value}
           onChange={onChange}
@@ -34,7 +35,7 @@ function PasswordInput({ id, label, value, onChange, autoComplete }) {
           onClick={() => setVisible((current) => !current)}
           aria-label={visible ? 'Hide password' : 'Show password'}
         >
-          {visible ? '◉' : '◌'}
+          {visible ? 'Hide' : 'Show'}
         </button>
       </span>
     </label>
@@ -61,6 +62,7 @@ const passwordChecks = [
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { register, friendlyAuthError } = useAuth();
   const [role, setRole] = useState('employee');
   const [employeeId, setEmployeeId] = useState('');
   const [fullName, setFullName] = useState('');
@@ -78,7 +80,7 @@ export default function Signup() {
 
   const isPasswordValid = passwordState.every((check) => check.passed);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setStatus({ type: '', message: '' });
 
@@ -93,27 +95,35 @@ export default function Signup() {
     }
 
     if (!isPasswordValid) {
-      setStatus({ type: 'error', message: 'Password must include an uppercase letter, a number, and a special character.' });
+      setStatus({
+        type: 'error',
+        message: 'Password must include an uppercase letter, a number, and a special character.',
+      });
       return;
     }
 
     setIsSubmitting(true);
 
-    const account = {
-      role,
-      employeeId: employeeId.trim(),
-      fullName: fullName.trim(),
-      workEmail: workEmail.trim().toLowerCase(),
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      await register({
+        role,
+        employeeId: employeeId.trim(),
+        fullName: fullName.trim(),
+        email: workEmail.trim().toLowerCase(),
+        password,
+      });
 
-    window.localStorage.setItem('dayflow.pendingAccount', JSON.stringify(account));
-    const accounts = JSON.parse(window.localStorage.getItem('dayflow.accounts') || '[]');
-    accounts.push(account);
-    window.localStorage.setItem('dayflow.accounts', JSON.stringify(accounts));
-
-    setIsSubmitting(false);
-    navigate(role === 'admin' ? '/admin' : '/employee', { replace: true });
+      navigate('/login', {
+        replace: true,
+        state: {
+          message: 'Account created. Check your email to verify your account before signing in.',
+        },
+      });
+    } catch (error) {
+      setStatus({ type: 'error', message: friendlyAuthError(error) });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -122,7 +132,7 @@ export default function Signup() {
         <Brand />
         <span className="hrms-label">HRMS</span>
         <div className="dayflow-wordmark">
-          <span>◒</span>
+          <span>DF</span>
           <strong>Dayflow</strong>
           <small>HRMS</small>
         </div>
@@ -145,14 +155,14 @@ export default function Signup() {
                 className={role === 'employee' ? 'active' : ''}
                 onClick={() => setRole('employee')}
               >
-                ♙ Employee
+                Employee
               </button>
               <button
                 type="button"
                 className={role === 'admin' ? 'active' : ''}
                 onClick={() => setRole('admin')}
               >
-                ♧ HR / Admin
+                HR / Admin
               </button>
             </div>
           </fieldset>
@@ -195,7 +205,7 @@ export default function Signup() {
               onChange={(event) => setWorkEmail(event.target.value)}
               autoComplete="email"
             />
-            <small>ℹ Email verification required.</small>
+            <small>Email verification is required before sign in.</small>
           </label>
 
           <PasswordInput
@@ -208,7 +218,7 @@ export default function Signup() {
 
           <div className="password-rules" aria-live="polite">
             {passwordState.map((rule) => (
-              <span key={rule.key}>{rule.passed ? '✓' : '✕'} {rule.label}</span>
+              <span key={rule.key}>{rule.passed ? 'Yes' : 'No'} {rule.label}</span>
             ))}
           </div>
 
@@ -236,9 +246,7 @@ export default function Signup() {
             {isSubmitting ? 'Creating Account...' : <>Create Account <b>→</b></>}
           </button>
 
-          {status.message ? (
-            <p className={`form-status ${status.type}`}>{status.message}</p>
-          ) : null}
+          {status.message ? <p className={`form-status ${status.type}`}>{status.message}</p> : null}
 
           <p className="auth-switch">
             Already have an account? <Link to="/login">Sign In</Link>
@@ -248,3 +256,4 @@ export default function Signup() {
     </main>
   );
 }
+
