@@ -1,6 +1,11 @@
 import { useState } from 'react';
+<<<<<<< Updated upstream
 import LeaveApprovals from './LeaveApprovals';
 import Attendance from './Attendance';
+=======
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext.jsx';
+>>>>>>> Stashed changes
 
 // ─── Icons (inline SVG so no extra deps) ────────────────────────────────────
 const Icons = {
@@ -162,7 +167,15 @@ const StatusBadge = ({ status }) => {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const { logout, profile, currentUser } = useAuth();
   const [activeNav, setActiveNav] = useState('dashboard');
+  const adminName = profile?.fullName || currentUser?.displayName || 'Admin Name';
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div style={{
@@ -185,7 +198,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Avatar name="Admin Name" size={40} bg="#0d9488" />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Admin Name</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{adminName}</div>
               <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>HR Director</div>
             </div>
           </div>
@@ -268,6 +281,23 @@ export default function Dashboard() {
               onMouseLeave={e => e.currentTarget.style.background = '#0d9488'}
             >
               <Icons.Plus /> New Employee
+            </button>
+            <button id="btn-logout" type="button" onClick={handleLogout} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px',
+              border: '1.5px solid #fecaca', borderRadius: 8, background: '#fff',
+              color: '#b91c1c', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = '#f87171';
+                e.currentTarget.style.background = '#fef2f2';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = '#fecaca';
+                e.currentTarget.style.background = '#fff';
+              }}
+            >
+              Log Out
             </button>
           </div>
         </div>
