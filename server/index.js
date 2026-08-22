@@ -10,7 +10,7 @@ if (!admin.apps.length) {
   else admin.initializeApp();
 }
 const app = express();
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || true }));
+app.use(cors({ origin: process.env.DEV_AUTH_BYPASS === 'true' ? true : (process.env.CLIENT_ORIGIN || true) }));
 app.use(express.json());
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const nameParts = (name = '') => { const p = name.trim().split(/\s+/).filter(Boolean); return [p.shift() || 'Employee', p.join(' ') || 'User']; };
@@ -39,5 +39,5 @@ app.post('/api/leaves', auth, async (req, res, next) => { try { const { leaveTyp
 app.get('/api/payroll', auth, async (req, res, next) => { try { const r = await db.query('SELECT * FROM payroll WHERE employee_id=$1 ORDER BY effective_date DESC', [req.employee.employee_id]); res.json({ payroll: r.rows }); } catch (e) { next(e); } });
 app.use((error, _req, res, _next) => res.status(error.status || 500).json({ error: error.message || 'Internal server error' }));
 const PORT = Number(process.env.PORT || 5000);
-if (require.main === module) app.listen(PORT, () => console.log(`Dayflow API running on http://localhost:${PORT}`));
+if (require.main === module) app.listen(PORT, '0.0.0.0', () => console.log(`Dayflow API running on port ${PORT}`));
 module.exports = app;
