@@ -1,0 +1,31 @@
+/* Shared desktop shell dimensions used by the Leave section. */
+.corporate-dashboard {
+  grid-template-columns: 166px 1fr;
+  background: #f7f9fc;
+  font: 12px Inter, system-ui, sans-serif;
+}
+
+.corp-sidebar { border-right-color: #e2e8f0; padding: 20px 0; }
+.corp-logo { gap: 10px; padding: 0 18px 24px; }
+.corp-logo > b { width: 32px; height: 44px; border-radius: 4px; background: #2878e8; font-size: 18px; }
+.corp-logo strong { color: #0560c9; font-size: 14px; letter-spacing: 0; }
+.corp-logo small { margin-top: 0; color: #1f3558; font-size: 8px; }
+.corp-sidebar nav { gap: 0; }
+.corp-sidebar a { gap: 12px; height: auto; padding: 12px 20px; color: #254266; font-size: 12px; }
+.corp-sidebar a span { font-size: 12px; }
+.corp-sidebar a.selected { border-right: 3px solid #0870de; background: #edf4ff; color: #0065c8; font-weight: 600; }
+
+.corp-top { height: 44px; padding: 0 16px; border-bottom-color: #e2e8f0; }
+.corp-content { max-width: 960px; padding: 18px 16px; }
+.corp-greeting h1 { font-size: 24px; }
+.corp-overview { grid-template-columns: repeat(4, 1fr); gap: 15px; }
+
+@media (max-width: 800px) {
+  .corporate-dashboard { grid-template-columns: 1fr; }
+  .corp-content { padding: 18px 16px; }
+}
+
+@media (max-width: 520px) {
+  .corp-content { padding: 15px 10px; }
+  .corp-greeting h1 { font-size: 20px; }
+}

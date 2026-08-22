@@ -1,20 +1,16 @@
-import './employee-dashboard.css';
+import './DashboardRef.css';
+import './DashboardLayout.css';
 
-const navItems = [['▦', 'Dashboard'], ['◷', 'Attendance'], ['□', 'Leave'], ['▣', 'Payroll'], ['▤', 'Documents']];
+const activities = [
+  ['✓', 'green', 'Your leave request for Aug 18–19 was approved', '2 hours ago'],
+  ['i', 'blue', 'Attendance marked for today', 'Today at 09:15 AM'],
+  ['✓', 'green', 'Salary for August 2026 has been processed', 'Yesterday'],
+  ['▣', 'gray', 'Profile photo updated successfully', 'Aug 15, 2026'],
+];
 
 export default function Dashboard() {
-  return <main className="employee-portal">
-    <aside className="employee-sidebar"><div className="portal-brand"><strong>Dayflow</strong><small>HR Portal</small></div><nav>{navItems.map(([icon, label], index) => <button className={index === 0 ? 'selected' : ''} key={label}><span>{icon}</span>{label}</button>)}</nav><button className="logout"><span>⇥</span> Log Out</button></aside>
-    <section className="portal-content">
-      <header className="portal-header"><button className="menu-toggle">☰</button><div><button>♧</button><button>⚙</button><button>?</button><span className="avatar mini-avatar">SJ</span></div></header>
-      <section className="employee-profile card"><span className="avatar">SJ</span><div className="profile-name"><h1>Sarah Jenkins</h1><p>Senior Product Designer • Design Team</p></div><div className="profile-meta"><span>Employee ID<b>DF-10492</b></span><span>Manager<b>David Chen</b></span></div></section>
-      <div className="dashboard-grid">
-        <section className="attendance card"><div className="card-heading"><div><h2>◷ Today's Attendance</h2><p>Oct 24, 2023</p></div><button className="checkin">◉ &nbsp; Check In</button></div><div className="attendance-bar"><i/><i/><i/><i/><i/></div></section>
-        <section className="payout card"><h2>▣ Last Payout</h2><p>September 2023</p><strong>$5,420<sup>.00</sup></strong><a href="#payout-history">View Payslip History</a></section>
-        <section className="leave-card card"><div className="card-heading"><h2>Leave Balances</h2><button className="apply">Apply</button></div><div className="leave-row"><div><b>Annual Leave</b><span>Available</span></div><em>12 Days</em></div><div className="leave-row"><div><b>Sick Leave</b><span>Available</span></div><em className="low">4 Days</em></div></section>
-        <section className="activity card"><h2>Activity</h2><div className="timeline"><div><span>◉</span><p>Performance Review Signed<small>2 hours ago</small></p></div><div><span>⌁</span><p>Leave Request Approved<small>Yesterday, 4:30 PM</small></p></div></div></section>
-        <section className="quick-docs card"><h2>Quick Docs</h2><div><button>♙<small>Company<br />Policy</small></button><button>♢<small>Benefits<br />Guide</small></button><button>▧<small>Tax<br />Form (W4)</small></button><button>•••<small>View<br />All</small></button></div></section>
-      </div>
-    </section>
+  return <main className="corporate-dashboard">
+    <aside className="corp-sidebar"><div className="corp-logo"><b>C</b><div><strong>CorporateHR</strong><small>Management Suite</small></div></div><nav><a className="selected" href="/employee">▦ <span>Dashboard</span></a><a href="#attendance">▦ <span>Attendance</span></a><a href="/employee/leave">▣ <span>Leave</span></a><a href="/employee/salary">▣ <span>Payroll</span></a><a href="#profile">♙ <span>Profile</span></a></nav></aside>
+    <section className="corp-main"><header className="corp-top"><span>Saturday, 22 August 2026</span><label>⌕ <input placeholder="Search..." /></label><div><button>♧</button><button>▣</button><span><b>Vishnu</b><small>EMP001</small></span><i>VK</i></div></header><div className="corp-content"><header className="corp-greeting"><h1>Good morning, Vishnu <span>👋</span></h1><p>Every workday, perfectly aligned.</p></header><section className="corp-overview"><article className="employee-card"><div className="portrait">VK</div><h2>Vishnu</h2><p>Software Engineer</p><a href="#profile">View Profile</a></article><article className="overview-card"><header><i className="mint">♧</i><span>Present</span></header><h2>Attendance</h2><p>Checked in at 09:15 AM</p><button>Check Out</button></article><article className="overview-card"><header><i className="peach">▣</i><span className="pending">2 Pending</span></header><h2>Leave Balance</h2><p>7 Casual Leave remaining</p><button className="leave-button">Apply for Leave</button></article><article className="overview-card salary-card"><header><i className="sky">▤</i></header><p>August 2026 Processed</p><h2>₹68,450 <small>Net</small></h2><a href="/employee/salary">View Salary →</a></article></section><section className="corp-activity"><h2>Recent Activity</h2><div>{activities.map(([icon, type, title, time]) => <article key={title}><i className={type}>{icon}</i><p>{title}<small>{time}</small></p></article>)}</div></section></div></section>
   </main>;
 }
