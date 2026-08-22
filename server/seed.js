@@ -2,6 +2,19 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const config = { user: process.env.DB_USER || 'postgres', host: process.env.DB_HOST || 'localhost', password: process.env.DB_PASSWORD || '', port: Number(process.env.DB_PORT || 5432), database: process.env.DB_NAME || 'dayflow_db' };
+async function ensureDatabase() {
+  const databaseName = config.database;
+  const adminPool = new Pool({ ...config, database: 'postgres' });
+  try {
+    const result = await adminPool.query('SELECT 1 FROM pg_database WHERE datname=$1', [databaseName]);
+    if (!result.rowCount) {
+      const safeName = databaseName.replace(/[^a-zA-Z0-9_]/g, '');
+      if (!safeName) throw new Error('Invalid DB_NAME');
+      await adminPool.query(`CREATE DATABASE "${safeName}"`);
+      console.log(`Created PostgreSQL database: ${safeName}`);
+    }
+  } finally { await adminPool.end(); }
+}
 const schema = `
 CREATE TABLE IF NOT EXISTS roles (role_id SERIAL PRIMARY KEY, role_name VARCHAR(50) UNIQUE NOT NULL);
 CREATE TABLE IF NOT EXISTS employees (employee_id SERIAL PRIMARY KEY, firebase_uid VARCHAR(128) UNIQUE NOT NULL, employee_code VARCHAR(50) UNIQUE NOT NULL, email VARCHAR(255) UNIQUE NOT NULL, role_id INT REFERENCES roles(role_id) ON DELETE RESTRICT, first_name VARCHAR(100) NOT NULL, last_name VARCHAR(100) NOT NULL, phone_number VARCHAR(20), address TEXT, profile_picture_url TEXT, job_title VARCHAR(100), department VARCHAR(100), date_of_joining DATE DEFAULT CURRENT_DATE, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);
@@ -11,6 +24,7 @@ CREATE TABLE IF NOT EXISTS payroll (payroll_id SERIAL PRIMARY KEY, employee_id I
 CREATE TABLE IF NOT EXISTS documents (document_id SERIAL PRIMARY KEY, employee_id INT REFERENCES employees(employee_id) ON DELETE CASCADE, document_name VARCHAR(255) NOT NULL, file_url TEXT NOT NULL, uploaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);
 INSERT INTO roles (role_name) VALUES ('Admin'), ('HR Officer'), ('Employee') ON CONFLICT (role_name) DO NOTHING;`;
 async function seed() {
+  await ensureDatabase();
   const pool = new Pool(config);
   try {
     await pool.query(schema);
