@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { fetchAdminResource } from '../../lib/adminApi.js';
 
 // ─── Icons ─────────────────────────────────────────────────────────────────
 const Icons = {
@@ -128,10 +130,28 @@ const leaveRequests = [
 
 // ─── Main Component ──────────────────────────────────────────────────────
 export default function LeaveApprovals() {
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('Pending');
   const [comments, setComments] = useState({});
+  const [requests, setRequests] = useState([]);
 
-  const filteredRequests = leaveRequests.filter(req => req.status === activeTab);
+  useEffect(() => {
+    fetchAdminResource('leaves', currentUser).then(rows => setRequests(rows.map(request => ({
+      ...request,
+      id: request.leave_id,
+      name: `${request.first_name} ${request.last_name}`,
+      role: request.job_title || request.role_name,
+      type: `${request.leave_type} Leave`,
+      startDate: new Date(request.start_date).toLocaleDateString(),
+      endDate: new Date(request.end_date).toLocaleDateString(),
+      days: Math.ceil((new Date(request.end_date) - new Date(request.start_date)) / 86400000) + 1,
+      reason: request.remarks || 'No reason provided',
+      appliedOn: request.created_at ? new Date(request.created_at).toLocaleDateString() : '—',
+      bg: '#0d9488',
+    })))).catch(() => setRequests([]));
+  }, [currentUser]);
+
+  const filteredRequests = requests.filter(req => req.status === activeTab);
 
   return (
     <div style={{

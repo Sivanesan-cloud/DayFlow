@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { fetchAdminResource } from '../../lib/adminApi.js';
 
 // ─── Icons ─────────────────────────────────────────────────────────────────
 const Icons = {
@@ -103,7 +105,23 @@ const attendanceData = [
 
 // ─── Main Component ──────────────────────────────────────────────────────
 export default function Attendance() {
+  const { currentUser } = useAuth();
   const [activeToggle, setActiveToggle] = useState('Daily');
+  const [attendanceData, setAttendanceData] = useState([]);
+
+  useEffect(() => {
+    fetchAdminResource('attendance', currentUser).then(rows => setAttendanceData(rows.map(row => ({
+      ...row,
+      id: row.attendance_id,
+      name: `${row.first_name} ${row.last_name}`,
+      dept: row.department || '—',
+      date: new Date(row.work_date).toLocaleDateString(),
+      checkIn: row.check_in_time || '--:--',
+      checkOut: row.check_out_time || '--:--',
+      status: row.status || 'Absent',
+      bg: '#0d9488',
+    })))).catch(() => setAttendanceData([]));
+  }, [currentUser]);
 
   return (
     <div style={{

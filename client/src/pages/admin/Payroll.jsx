@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { fetchAdminResource } from '../../lib/adminApi.js';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 const Avatar = ({ name, size = 38, bg = '#0d9488' }) => {
@@ -171,10 +173,25 @@ const ChevRight = () => (
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Payroll() {
+  const { currentUser } = useAuth();
   const [tab, setTab] = useState('current');
   const [search, setSearch] = useState('');
+  const [currentPayroll, setCurrentPayroll] = useState([]);
 
-  const employees = tab === 'current' ? currentEmployees : exEmployees;
+  useEffect(() => {
+    fetchAdminResource('payroll', currentUser).then(rows => setCurrentPayroll(rows.map(row => ({
+      ...row,
+      id: row.employee_code,
+      name: `${row.first_name} ${row.last_name}`,
+      dept: row.department || '—',
+      designation: '—',
+      salary: `₹${Number(row.net_salary || 0).toLocaleString('en-IN')}`,
+      status: 'Paid',
+      bg: '#0d9488',
+    })))).catch(() => setCurrentPayroll([]));
+  }, [currentUser]);
+
+  const employees = tab === 'current' ? currentPayroll : [];
   const filtered = employees.filter(e =>
     e.name.toLowerCase().includes(search.toLowerCase()) ||
     e.dept.toLowerCase().includes(search.toLowerCase())

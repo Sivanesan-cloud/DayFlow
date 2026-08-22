@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { fetchAdminResource } from '../../lib/adminApi.js';
 
 const departments = ['All Employees', 'Engineering', 'HR', 'Sales', 'Marketing', 'Design'];
 
@@ -99,11 +101,25 @@ const Badge = ({ children, type }) => {
 };
 
 export default function Employees() {
-  const [employees, setEmployees] = useState(starterEmployees);
+  const { currentUser } = useAuth();
+  const [employees, setEmployees] = useState([]);
   const [activeDepartment, setActiveDepartment] = useState('All Employees');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    fetchAdminResource('employees', currentUser).then(rows => setEmployees(rows.map(employee => ({
+      ...employee,
+      id: employee.employee_code,
+      name: `${employee.first_name} ${employee.last_name}`,
+      role: employee.job_title || employee.role_name,
+      department: employee.department || 'Unassigned',
+      status: 'Active',
+      mode: 'Office',
+      bg: '#0d9488',
+    })))).catch(() => setEmployees([]));
+  }, [currentUser]);
 
   const filteredEmployees = useMemo(() => {
     const text = search.trim().toLowerCase();

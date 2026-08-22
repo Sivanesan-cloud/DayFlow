@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import LeaveApprovals from './LeaveApprovals';
@@ -133,23 +133,6 @@ const navItems = [
 ];
 
 // ─── Static data ──────────────────────────────────────────────────────────────
-const recentEmployees = [
-  { name: 'Sarah Jenkins', role: 'Product Designer', dept: 'Design', status: 'Active', bg: '#7c3aed' },
-  { name: 'Michael Chen', role: 'Senior Engineer', dept: 'Engineering', status: 'Active', bg: '#0369a1' },
-  { name: 'Elena Rodriguez', role: 'Marketing Specialist', dept: 'Marketing', status: 'Onboarding', bg: '#be185d' },
-];
-
-const actionRequired = [
-  { name: 'David Kim', detail: 'Sick Leave • Oct 24', bg: '#0f766e' },
-  { name: 'Priya Patel', detail: 'Vacation • Nov 1-5', bg: '#7c3aed' },
-];
-
-const recentCheckins = [
-  { name: 'Sarah Jenkins', time: '08:45 AM', status: 'on-time' },
-  { name: 'Michael Chen', time: '08:52 AM', status: 'on-time' },
-  { name: 'David Kim', time: '09:15 AM', status: 'late' },
-];
-
 // ─── Status badge ─────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const styles = {
@@ -170,7 +153,29 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { logout, profile, currentUser } = useAuth();
   const [activeNav, setActiveNav] = useState('dashboard');
+  const [dashboard, setDashboard] = useState({ stats: {}, employees: [], actions: [], checkins: [] });
+  const [dashboardError, setDashboardError] = useState('');
   const adminName = profile?.fullName || currentUser?.displayName || 'Admin Name';
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const dev = import.meta.env.VITE_DEV_AUTH_BYPASS === 'true';
+        const headers = { 'Content-Type': 'application/json' };
+        if (!dev) headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
+        const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api'}${dev ? '/dev/dashboard' : '/admin/dashboard'}`, { headers });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || 'Unable to load dashboard');
+        setDashboard(body);
+      } catch (error) { setDashboardError(error.message); }
+    };
+    loadDashboard();
+  }, [currentUser]);
+
+  const stats = dashboard.stats;
+  const recentEmployees = dashboard.employees.map(employee => ({ ...employee, name: `${employee.first_name} ${employee.last_name}`, role: employee.role_name, dept: employee.department || '—', status: 'Active', bg: '#0d9488' }));
+  const actionRequired = dashboard.actions.map(action => ({ ...action, name: `${action.first_name} ${action.last_name}`, detail: `${action.leave_type} Leave • ${action.start_date}`, bg: '#0f766e' }));
+  const recentCheckins = dashboard.checkins.map(checkin => ({ ...checkin, name: `${checkin.first_name} ${checkin.last_name}`, time: checkin.check_in_time, status: checkin.status === 'Present' ? 'on-time' : 'late' }));
 
   const handleLogout = async () => {
     await logout();
@@ -315,7 +320,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={labelStyle}>Total Employees</div>
-                <div style={bigNumStyle}>124</div>
+                <div style={bigNumStyle}>{stats.total_employees ?? '—'}</div>
               </div>
               <div style={iconWrap('#f0fdfb')}>
                 <Icons.TotalEmp />
@@ -329,8 +334,7 @@ export default function Dashboard() {
               <div>
                 <div style={labelStyle}>Present Today</div>
                 <div style={{ ...bigNumStyle, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  112
-                  <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 600 }}>↑90%</span>
+                  {stats.present_today ?? '—'}
                 </div>
               </div>
               <div style={iconWrap('#f0fdfb')}>
@@ -344,7 +348,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={labelStyle}>On Leave</div>
-                <div style={bigNumStyle}>8</div>
+                <div style={bigNumStyle}>{stats.on_leave ?? '—'}</div>
               </div>
               <div style={iconWrap('#fffbeb')}>
                 <Icons.OnLeave />
@@ -357,7 +361,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ ...labelStyle, color: '#dc2626' }}>Pending Leave</div>
-                <div style={{ ...bigNumStyle, color: '#dc2626' }}>4</div>
+                <div style={{ ...bigNumStyle, color: '#dc2626' }}>{stats.pending_leave ?? '—'}</div>
               </div>
               <div style={iconWrap('#fef2f2')}>
                 <Icons.Pending />
@@ -394,7 +398,7 @@ export default function Dashboard() {
             </div>
 
             {/* Rows */}
-            {recentEmployees.map((emp, i) => (
+            {dashboardError ? <p style={{ padding: '16px 20px', color: '#b91c1c' }}>{dashboardError}</p> : recentEmployees.map((emp, i) => (
               <div key={i} style={{
                 display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 1fr',
                 padding: '14px 20px', alignItems: 'center',

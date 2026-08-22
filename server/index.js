@@ -29,6 +29,35 @@ app.get('/api/health', async (_req, res, next) => { try { const r = await db.que
 app.post('/api/auth/profile', verifyToken, async (req, res, next) => { try { const { employeeCode, fullName, role = 'employee', email } = req.body; if (!employeeCode || !fullName || !email) throw fail(400, 'employeeCode, fullName and email are required'); const [first, last] = nameParts(fullName); const r = await db.query('INSERT INTO employees (firebase_uid,employee_code,email,role_id,first_name,last_name) SELECT $1,$2,$3,role_id,$4,$5 FROM roles WHERE role_name=$6 RETURNING *', [req.firebaseUser.uid, employeeCode, email.toLowerCase(), first, last, dbRole(role)]); if (!r.rows[0]) throw fail(400, 'Invalid role'); res.status(201).json({ employee: r.rows[0] }); } catch (e) { next(e.code === '23505' ? fail(409, 'Employee code or email is already registered') : e); } });
 app.post('/api/dev/login', async (req, res, next) => { try { if (process.env.NODE_ENV === 'production' || process.env.DEV_AUTH_BYPASS !== 'true') throw fail(404, 'Not found'); const email = String(req.body.email || '').trim().toLowerCase(); if (!email) throw fail(400, 'Email is required'); const r = await db.query('SELECT e.*, r.role_name FROM employees e JOIN roles r ON r.role_id=e.role_id WHERE LOWER(e.email)=$1', [email]); if (!r.rows[0]) throw fail(401, 'No PostgreSQL employee profile exists for this email'); res.json({ employee: r.rows[0] }); } catch (e) { next(e); } });
 app.get('/api/me', auth, (req, res) => res.json({ employee: req.employee }));
+app.get('/api/me/data', auth, async (req, res, next) => { try { const id = req.employee.employee_id; const [attendance, leaves, payroll] = await Promise.all([db.query('SELECT * FROM attendance WHERE employee_id=$1 ORDER BY work_date DESC', [id]), db.query('SELECT * FROM leave_requests WHERE employee_id=$1 ORDER BY created_at DESC', [id]), db.query('SELECT * FROM payroll WHERE employee_id=$1 ORDER BY effective_date DESC', [id])]); res.json({ attendance: attendance.rows, leaves: leaves.rows, payroll: payroll.rows }); } catch (e) { next(e); } });
+async function dashboardData() {
+  const [stats, employees, actions, checkins] = await Promise.all([
+    db.query(`SELECT (SELECT COUNT(*)::int FROM employees) AS total_employees,
+      (SELECT COUNT(*)::int FROM attendance WHERE work_date=CURRENT_DATE AND status='Present') AS present_today,
+      (SELECT COUNT(DISTINCT employee_id)::int FROM leave_requests WHERE status='Approved' AND CURRENT_DATE BETWEEN start_date AND end_date) AS on_leave,
+      (SELECT COUNT(*)::int FROM leave_requests WHERE status='Pending') AS pending_leave`),
+    db.query(`SELECT e.employee_id, e.first_name, e.last_name, e.employee_code, e.department, r.role_name, e.created_at
+      FROM employees e JOIN roles r ON r.role_id=e.role_id ORDER BY e.created_at DESC LIMIT 3`),
+    db.query(`SELECT l.leave_id, l.leave_type, l.start_date, l.end_date, l.remarks, e.first_name, e.last_name
+      FROM leave_requests l JOIN employees e ON e.employee_id=l.employee_id WHERE l.status='Pending' ORDER BY l.created_at DESC LIMIT 3`),
+    db.query(`SELECT a.attendance_id, a.check_in_time, a.status, e.first_name, e.last_name
+      FROM attendance a JOIN employees e ON e.employee_id=a.employee_id WHERE a.work_date=CURRENT_DATE AND a.check_in_time IS NOT NULL ORDER BY a.check_in_time DESC LIMIT 3`),
+  ]);
+  return { stats: stats.rows[0], employees: employees.rows, actions: actions.rows, checkins: checkins.rows };
+}
+app.get('/api/admin/dashboard', auth, staff, async (_req, res, next) => { try { res.json(await dashboardData()); } catch (e) { next(e); } });
+app.get('/api/dev/dashboard', async (_req, res, next) => { try { if (process.env.NODE_ENV === 'production' || process.env.DEV_AUTH_BYPASS !== 'true') throw fail(404, 'Not found'); res.json(await dashboardData()); } catch (e) { next(e); } });
+const adminResourceQueries = {
+  employees: `SELECT e.*, r.role_name FROM employees e JOIN roles r ON r.role_id=e.role_id ORDER BY e.employee_id`,
+  attendance: `SELECT a.*, e.first_name, e.last_name, e.department FROM attendance a JOIN employees e ON e.employee_id=a.employee_id ORDER BY a.work_date DESC, a.check_in_time DESC`,
+  leaves: `SELECT l.*, e.first_name, e.last_name, e.job_title, r.role_name FROM leave_requests l JOIN employees e ON e.employee_id=l.employee_id JOIN roles r ON r.role_id=e.role_id ORDER BY l.created_at DESC`,
+  payroll: `SELECT p.*, e.first_name, e.last_name, e.employee_code, e.department FROM payroll p JOIN employees e ON e.employee_id=p.employee_id ORDER BY p.effective_date DESC, e.employee_id`,
+};
+for (const resource of Object.keys(adminResourceQueries)) {
+  app.get(`/api/admin/${resource}`, auth, staff, async (_req, res, next) => { try { const r = await db.query(adminResourceQueries[resource]); res.json({ [resource]: r.rows }); } catch (e) { next(e); } });
+  app.get(`/api/dev/admin/${resource}`, async (_req, res, next) => { try { if (process.env.NODE_ENV === 'production' || process.env.DEV_AUTH_BYPASS !== 'true') throw fail(404, 'Not found'); const r = await db.query(adminResourceQueries[resource]); res.json({ [resource]: r.rows }); } catch (e) { next(e); } });
+}
+app.get('/api/dev/employee-data/:employeeId', async (req, res, next) => { try { if (process.env.NODE_ENV === 'production' || process.env.DEV_AUTH_BYPASS !== 'true') throw fail(404, 'Not found'); const id = Number(req.params.employeeId); const [attendance, leaves, payroll] = await Promise.all([db.query('SELECT * FROM attendance WHERE employee_id=$1 ORDER BY work_date DESC', [id]), db.query('SELECT * FROM leave_requests WHERE employee_id=$1 ORDER BY created_at DESC', [id]), db.query('SELECT * FROM payroll WHERE employee_id=$1 ORDER BY effective_date DESC', [id])]); res.json({ attendance: attendance.rows, leaves: leaves.rows, payroll: payroll.rows }); } catch (e) { next(e); } });
 app.patch('/api/me', auth, async (req, res, next) => { try { const keys = ['phone_number', 'address', 'profile_picture_url'].filter(k => Object.hasOwn(req.body, k)); if (!keys.length) throw fail(400, 'Only phone_number, address and profile_picture_url can be edited'); const values = keys.map(k => req.body[k]); const set = keys.map((k, i) => `${k}=$${i + 1}`).join(','); const r = await db.query(`UPDATE employees SET ${set},updated_at=CURRENT_TIMESTAMP WHERE employee_id=$${values.length + 1} RETURNING *`, [...values, req.employee.employee_id]); res.json({ employee: r.rows[0] }); } catch (e) { next(e); } });
 app.get('/api/employees', auth, staff, async (_req, res, next) => { try { const r = await db.query('SELECT e.*,r.role_name FROM employees e JOIN roles r ON r.role_id=e.role_id ORDER BY e.employee_id'); res.json({ employees: r.rows }); } catch (e) { next(e); } });
 app.get('/api/attendance', auth, async (req, res, next) => { try { const r = await db.query('SELECT * FROM attendance WHERE employee_id=$1 ORDER BY work_date DESC', [req.employee.employee_id]); res.json({ attendance: r.rows }); } catch (e) { next(e); } });
