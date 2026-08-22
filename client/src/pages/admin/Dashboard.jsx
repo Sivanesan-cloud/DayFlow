@@ -1,18 +1,13 @@
 import { useState } from 'react';
-<<<<<<< Updated upstream
-import LeaveApprovals from './LeaveApprovals';
-import Attendance from './Attendance';
-<<<<<<< HEAD
-import Payroll from './Payroll';
-import Employees from './Employees';
-=======
-=======
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
->>>>>>> Stashed changes
->>>>>>> 219d032f9e1b8b6d5f2dfb9bd2a650df7a116075
+import LeaveApprovals from './LeaveApprovals';
+import Attendance from './Attendance';
+import Payroll from './Payroll';
+import Employees from './Employees';
+import Reports from './Reports';
 
-// ─── Icons (inline SVG so no extra deps) ────────────────────────────────────
+// Icons (inline SVG so no extra deps)
 const Icons = {
   Dashboard: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -253,9 +248,10 @@ export default function Dashboard() {
         ) : activeNav === 'employees' ? (
           <Employees />
         ) : activeNav === 'leave' ? (
-          <LeaveApprovals />
-        ) : activeNav === 'payroll' ? (
+          <LeaveApprovals />        ) : activeNav === 'payroll' ? (
           <Payroll />
+        ) : activeNav === 'reports' ? (
+          <Reports />
         ) : (
           <>
         {/* Header row */}
@@ -502,4 +498,6 @@ function actionBtn(type) {
     cursor: 'pointer',
   };
 }
+
+
 
