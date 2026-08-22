@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import LeaveApprovals from './LeaveApprovals';
 import Attendance from './Attendance';
+import Payroll from './Payroll';
+import Employees from './Employees';
 
 // ─── Icons (inline SVG so no extra deps) ────────────────────────────────────
 const Icons = {
@@ -232,8 +234,12 @@ export default function Dashboard() {
       <main style={{ marginLeft: 200, flex: 1, padding: '32px 28px', minHeight: '100vh' }}>
         {activeNav === 'attendance' ? (
           <Attendance />
+        ) : activeNav === 'employees' ? (
+          <Employees />
         ) : activeNav === 'leave' ? (
           <LeaveApprovals />
+        ) : activeNav === 'payroll' ? (
+          <Payroll />
         ) : (
           <>
         {/* Header row */}
@@ -463,3 +469,4 @@ function actionBtn(type) {
     cursor: 'pointer',
   };
 }
+
